@@ -2,9 +2,11 @@
 
 use core::marker::PhantomData;
 
+use crate::eh::delay::DelayNs;
+
 use crate::{
-    conversion, devices::OperatingMode, mode, Ads1x1x, BitFlags, ChannelId, Config, Error,
-    ModeChangeError, Register,
+    conversion, devices::OperatingMode, mode, Ads1x1x, BitFlags, ChannelId, Error, ModeChangeError,
+    Register,
 };
 
 impl<I2C, IC, CONV, E> Ads1x1x<I2C, IC, CONV, mode::OneShot>
@@ -13,10 +15,10 @@ where
     CONV: conversion::ConvertMeasurement,
 {
     /// Changes to continuous operating mode.
-    pub fn into_continuous(
+    pub async fn into_continuous(
         mut self,
     ) -> Result<Ads1x1x<I2C, IC, CONV, mode::Continuous>, ModeChangeError<E, Self>> {
-        if let Err(Error::I2C(e)) = self.set_operating_mode(OperatingMode::Continuous) {
+        if let Err(Error::I2C(e)) = self.set_operating_mode(OperatingMode::Continuous).await {
             return Err(ModeChangeError::I2C(e, self));
         }
         Ok(Ads1x1x {
@@ -24,58 +26,41 @@ where
             address: self.address,
             config: self.config,
             fsr: self.fsr,
-            a_conversion_was_started: true,
             _conv: PhantomData,
             _ic: PhantomData,
             _mode: PhantomData,
         })
     }
 
-    fn trigger_measurement(&mut self, config: &Config) -> Result<(), Error<E>> {
-        let config = config.with_high(BitFlags::OS);
-        self.write_register(Register::CONFIG, config.bits)
-    }
-}
-
-impl<I2C, IC, CONV, E> Ads1x1x<I2C, IC, CONV, mode::OneShot>
-where
-    I2C: crate::eh::i2c::I2c<Error = E>,
-    CONV: conversion::ConvertMeasurement,
-{
-    /// Requests that the ADC begins a conversion on the specified channel.
+    /// Performs a new conversion on the specified channel and returns its result.
     ///
     /// The output value will be within `[2047..-2048]` for 12-bit devices
     /// (`ADS101x`) and within `[32767..-32768]` for 16-bit devices (`ADS111x`).
     /// The voltage that these values correspond to must be calculated using
     /// the full-scale range ([`FullScaleRange`](crate::FullScaleRange)) selected.
     ///
-    /// Returns `nb::Error::WouldBlock` while a measurement is in progress.
-    ///
-    /// In case a measurement was requested and after is it is finished a
-    /// measurement on a different channel is requested, a new measurement on
-    /// using the new channel selection is triggered.
-    #[allow(unused_variables)]
-    pub fn read<CH: ChannelId<Self>>(&mut self, channel: CH) -> nb::Result<i16, Error<E>> {
-        if self
-            .is_measurement_in_progress()
-            .map_err(nb::Error::Other)?
-        {
-            return Err(nb::Error::WouldBlock);
-        }
+    /// Waits for any previous conversion to finish before starting a new one.
+    /// Polls conversion status with an async delay of at least 100 microseconds
+    /// between checks while the ADC is busy.
+    pub async fn read<CH: ChannelId<Self>, D: DelayNs + ?Sized>(
+        &mut self,
+        _channel: CH,
+        delay: &mut D,
+    ) -> Result<i16, Error<E>> {
+        self.wait_until_ready(delay).await?;
         let config = self.config.with_mux_bits(CH::channel_id());
-        let same_channel = self.config == config;
-        if self.a_conversion_was_started && same_channel {
-            // result is ready
-            let value = self
-                .read_register(Register::CONVERSION)
-                .map_err(nb::Error::Other)?;
-            self.a_conversion_was_started = false;
-            return Ok(CONV::convert_measurement(value));
-        }
-        self.trigger_measurement(&config)
-            .map_err(nb::Error::Other)?;
+        self.write_register(Register::CONFIG, config.with_high(BitFlags::OS).bits)
+            .await?;
         self.config = config;
-        self.a_conversion_was_started = true;
-        Err(nb::Error::WouldBlock)
+        self.wait_until_ready(delay).await?;
+        let value = self.read_register(Register::CONVERSION).await?;
+        Ok(CONV::convert_measurement(value))
+    }
+
+    async fn wait_until_ready<D: DelayNs + ?Sized>(&mut self, delay: &mut D) -> Result<(), Error<E>> {
+        while self.is_measurement_in_progress().await? {
+            delay.delay_us(100).await;
+        }
+        Ok(())
     }
 }

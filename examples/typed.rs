@@ -2,7 +2,6 @@
 // to ease usage in signatures.
 
 use linux_embedded_hal::I2cdev;
-use nb::block;
 
 use ads1x1x::{
     channel,
@@ -10,21 +9,24 @@ use ads1x1x::{
     Ads1x1x, TargetAddr,
 };
 
+mod common;
+use common::{BlockingDelay, BlockingI2c};
+
 /// Type alias
-type Adc = Ads1x1x<I2cdev, Ads1115, Resolution16Bit, ads1x1x::mode::OneShot>;
+type Adc = Ads1x1x<BlockingI2c, Ads1115, Resolution16Bit, ads1x1x::mode::OneShot>;
 
 /// Read a single value from channel A.
-/// Returns 0 on Error.
-pub fn read(adc: &mut Adc) -> i16 {
-    block!(adc.read(channel::SingleA0)).unwrap_or(0)
+pub async fn read(adc: &mut Adc) -> i16 {
+    adc.read(channel::SingleA0, &mut BlockingDelay).await.unwrap()
 }
 
-fn main() {
+#[pollster::main]
+async fn main() {
     let dev = I2cdev::new("/dev/i2c-1").unwrap();
-    let mut adc = Ads1x1x::new_ads1115(dev, TargetAddr::default());
+    let mut adc = Ads1x1x::new_ads1115(BlockingI2c(dev), TargetAddr::default());
 
-    let value = read(&mut adc);
-    println!("Measurement: {}", value);
+    let value = read(&mut adc).await;
+    println!("Measurement: {value}");
     // get I2C device back
-    let _dev = adc.destroy_ads1115();
+    let _dev = adc.destroy_ads1115().0;
 }

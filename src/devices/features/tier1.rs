@@ -7,7 +7,7 @@ where
     I2C: crate::eh::i2c::I2c<Error = E>,
 {
     /// Sets the data rate.
-    pub fn set_data_rate(&mut self, rate: DataRate12Bit) -> Result<(), Error<E>> {
+    pub async fn set_data_rate(&mut self, rate: DataRate12Bit) -> Result<(), Error<E>> {
         use crate::DataRate12Bit as DR;
         let cfg = self.config.clone();
         let config = match rate {
@@ -19,7 +19,7 @@ where
             DR::Sps2400 => cfg.with_high(BF::DR2).with_low(BF::DR1).with_high(BF::DR0),
             DR::Sps3300 => cfg.with_high(BF::DR2).with_high(BF::DR1).with_low(BF::DR0),
         };
-        self.write_register(Register::CONFIG, config.bits)?;
+        self.write_register(Register::CONFIG, config.bits).await?;
         self.config = config;
         Ok(())
     }
@@ -30,7 +30,7 @@ where
     I2C: crate::eh::i2c::I2c<Error = E>,
 {
     /// Sets the data rate.
-    pub fn set_data_rate(&mut self, rate: DataRate16Bit) -> Result<(), Error<E>> {
+    pub async fn set_data_rate(&mut self, rate: DataRate16Bit) -> Result<(), Error<E>> {
         use crate::DataRate16Bit as DR;
         let cfg = self.config.clone();
         let config = match rate {
@@ -43,7 +43,7 @@ where
             DR::Sps475 => cfg.with_high(BF::DR2).with_high(BF::DR1).with_low(BF::DR0),
             DR::Sps860 => cfg.with_high(BF::DR2).with_high(BF::DR1).with_high(BF::DR0),
         };
-        self.write_register(Register::CONFIG, config.bits)?;
+        self.write_register(Register::CONFIG, config.bits).await?;
         self.config = config;
         Ok(())
     }

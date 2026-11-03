@@ -10,11 +10,11 @@ use crate::common::{
 
 macro_rules! set_value_test {
     ($name:ident, $method:ident, $value:expr, $reg:ident, $msb:expr, $lsb:expr) => {
-        #[test]
-        fn $name() {
+        #[pollster::test]
+        async fn $name() {
             let transactions = [I2cTrans::write(DEV_ADDR, vec![Register::$reg, $msb, $lsb])];
             let mut dev = new_ads1014(&transactions);
-            dev.$method($value).unwrap();
+            dev.$method($value).await.unwrap();
             destroy_ads1014(dev);
         }
     };
@@ -80,8 +80,8 @@ mod can_set_comparator_latching {
     );
 }
 
-#[test]
-fn can_disable_comparator() {
+#[pollster::test]
+async fn can_disable_comparator() {
     let config = Config::default()
         .with_high(BF::COMP_QUE1)
         .with_high(BF::COMP_QUE0);
@@ -90,7 +90,7 @@ fn can_disable_comparator() {
         vec![Register::CONFIG, config.msb(), config.lsb()],
     )];
     let mut dev = new_ads1014(&transactions);
-    dev.disable_comparator().unwrap();
+    dev.disable_comparator().await.unwrap();
     destroy_ads1014(dev);
 }
 
@@ -122,19 +122,19 @@ mod can_set_comparator_queue {
     );
 }
 
-#[test]
-fn can_use_alert_rdy_pin_as_rdy_does_not_disable_comparator_if_already_disabled() {
+#[pollster::test]
+async fn can_use_alert_rdy_pin_as_rdy_does_not_disable_comparator_if_already_disabled() {
     let transactions = [
         I2cTrans::write(DEV_ADDR, vec![Register::HIGH_TH, 0b1000_0000, 0]),
         I2cTrans::write(DEV_ADDR, vec![Register::LOW_TH, 0, 0]),
     ];
     let mut dev = new_ads1014(&transactions);
-    dev.use_alert_rdy_pin_as_ready().unwrap();
+    dev.use_alert_rdy_pin_as_ready().await.unwrap();
     destroy_ads1014(dev);
 }
 
-#[test]
-fn can_use_alert_rdy_pin_as_rdy_disabled_comparator() {
+#[pollster::test]
+async fn can_use_alert_rdy_pin_as_rdy_disabled_comparator() {
     let config = Config::default()
         .with_low(BF::COMP_QUE1)
         .with_low(BF::COMP_QUE0);
@@ -155,8 +155,8 @@ fn can_use_alert_rdy_pin_as_rdy_disabled_comparator() {
         I2cTrans::write(DEV_ADDR, vec![Register::LOW_TH, 0, 0]),
     ];
     let mut dev = new_ads1014(&transactions);
-    dev.set_comparator_queue(ComparatorQueue::One).unwrap();
-    dev.use_alert_rdy_pin_as_ready().unwrap();
+    dev.set_comparator_queue(ComparatorQueue::One).await.unwrap();
+    dev.use_alert_rdy_pin_as_ready().await.unwrap();
     destroy_ads1014(dev);
 }
 

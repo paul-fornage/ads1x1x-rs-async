@@ -1,6 +1,6 @@
 use ads1x1x::{channel, DataRate12Bit, DataRate16Bit};
+use embedded_hal_mock::eh1::delay::NoopDelay;
 use embedded_hal_mock::eh1::i2c::Transaction as I2cTrans;
-use nb::block;
 
 mod common;
 use crate::common::{
@@ -13,25 +13,8 @@ macro_rules! measure_tests {
         mod $IC {
             use super::*;
 
-            mod would_block {
-                use super::*;
-
-                #[test]
-                fn read_if_measurement_in_progress() {
-                    let config = Config::default().with_low(BF::OS);
-                    let transactions = [I2cTrans::write_read(
-                        DEV_ADDR,
-                        vec![Register::CONFIG],
-                        vec![config.msb(), config.lsb()],
-                    )];
-                    let mut dev = $create(&transactions);
-                    assert_would_block!(dev.read(channel::DifferentialA0A1));
-                    $destroy(dev);
-                }
-            }
-
-            #[test]
-            fn can_measure() {
+            #[pollster::test]
+            async fn can_measure() {
                 let default_config = Config::default();
                 let config_with_os = Config::default().with_high(BF::OS);
                 let transactions = [
@@ -52,21 +35,24 @@ macro_rules! measure_tests {
                     I2cTrans::write_read(DEV_ADDR, vec![Register::CONVERSION], vec![0x80, 0x00]),
                 ];
                 let mut dev = $create(&transactions);
-                let measurement = block!(dev.read(channel::DifferentialA0A1)).unwrap();
+                let measurement = dev
+                    .read(channel::DifferentialA0A1, &mut NoopDelay::new())
+                    .await
+                    .unwrap();
                 assert_eq!($expected, measurement);
                 $destroy(dev);
             }
 
-            #[test]
-            fn can_measure_continuous() {
+            #[pollster::test]
+            async fn can_measure_continuous() {
                 let config = Config::default().with_low(BF::OP_MODE);
                 let transactions = [
                     I2cTrans::write(DEV_ADDR, vec![Register::CONFIG, config.msb(), config.lsb()]),
                     I2cTrans::write_read(DEV_ADDR, vec![Register::CONVERSION], vec![0x80, 0x00]),
                 ];
                 let dev = $create(&transactions);
-                let mut dev = dev.into_continuous().ok().unwrap();
-                let measurement = dev.read().unwrap();
+                let mut dev = dev.into_continuous().await.ok().unwrap();
+                let measurement = dev.read().await.unwrap();
                 assert_eq!($expected, measurement);
                 $destroy(dev);
             }
@@ -82,14 +68,14 @@ mod data_rate_12bit {
 
     macro_rules! test {
         ($name:ident, $variant:ident, $config:expr) => {
-            #[test]
-            fn $name() {
+            #[pollster::test]
+            async fn $name() {
                 let transactions = [I2cTrans::write(
                     DEV_ADDR,
                     vec![Register::CONFIG, $config.msb(), $config.lsb()],
                 )];
                 let mut dev = new_ads1013(&transactions);
-                dev.set_data_rate(DataRate12Bit::$variant).unwrap();
+                dev.set_data_rate(DataRate12Bit::$variant).await.unwrap();
                 destroy_ads1013(dev);
             }
         };
@@ -158,14 +144,14 @@ mod data_rate_16bit {
 
     macro_rules! test {
         ($name:ident, $variant:ident, $config:expr) => {
-            #[test]
-            fn $name() {
+            #[pollster::test]
+            async fn $name() {
                 let transactions = [I2cTrans::write(
                     DEV_ADDR,
                     vec![Register::CONFIG, $config.msb(), $config.lsb()],
                 )];
                 let mut dev = new_ads1113(&transactions);
-                dev.set_data_rate(DataRate16Bit::$variant).unwrap();
+                dev.set_data_rate(DataRate16Bit::$variant).await.unwrap();
                 destroy_ads1113(dev);
             }
         };
@@ -237,8 +223,8 @@ mod data_rate_16bit {
     );
 }
 
-#[test]
-fn can_read_measurement_in_progress() {
+#[pollster::test]
+async fn can_read_measurement_in_progress() {
     let config_os = Config::default().with_low(BF::OS);
     let transactions = [I2cTrans::write_read(
         DEV_ADDR,
@@ -246,12 +232,12 @@ fn can_read_measurement_in_progress() {
         vec![config_os.msb(), config_os.lsb()],
     )];
     let mut dev = new_ads1013(&transactions);
-    assert!(dev.is_measurement_in_progress().unwrap());
+    assert!(dev.is_measurement_in_progress().await.unwrap());
     destroy_ads1013(dev);
 }
 
-#[test]
-fn can_read_measurement_not_in_progress() {
+#[pollster::test]
+async fn can_read_measurement_not_in_progress() {
     let config_os = Config::default().with_high(BF::OS);
     let transactions = [I2cTrans::write_read(
         DEV_ADDR,
@@ -259,24 +245,24 @@ fn can_read_measurement_not_in_progress() {
         vec![config_os.msb(), config_os.lsb()],
     )];
     let mut dev = new_ads1013(&transactions);
-    assert!(!dev.is_measurement_in_progress().unwrap());
+    assert!(!dev.is_measurement_in_progress().await.unwrap());
     destroy_ads1013(dev);
 }
 
-#[test]
-fn can_convert_to_continuous() {
+#[pollster::test]
+async fn can_convert_to_continuous() {
     let config = Config::default().with_low(BF::OP_MODE);
     let transactions = [I2cTrans::write(
         DEV_ADDR,
         vec![Register::CONFIG, config.msb(), config.lsb()],
     )];
     let dev = new_ads1013(&transactions);
-    let dev = dev.into_continuous().ok().unwrap();
+    let dev = dev.into_continuous().await.ok().unwrap();
     destroy_ads1013(dev);
 }
 
-#[test]
-fn can_convert_to_one_shot() {
+#[pollster::test]
+async fn can_convert_to_one_shot() {
     let config_cont = Config::default().with_low(BF::OP_MODE);
     let config_os = Config::default();
     let transactions = [
@@ -290,7 +276,7 @@ fn can_convert_to_one_shot() {
         ),
     ];
     let dev = new_ads1013(&transactions);
-    let dev = dev.into_continuous().ok().unwrap();
-    let dev = dev.into_one_shot().ok().unwrap();
+    let dev = dev.into_continuous().await.ok().unwrap();
+    let dev = dev.into_one_shot().await.ok().unwrap();
     destroy_ads1013(dev);
 }
