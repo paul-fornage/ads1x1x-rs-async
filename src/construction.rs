@@ -7,7 +7,7 @@ macro_rules! impl_new_destroy {
     ( $IC:ident, $create:ident, $destroy:ident, $conv:ty ) => {
         impl<I2C, E> Ads1x1x<I2C, ic::$IC, $conv, mode::OneShot>
         where
-            I2C: embedded_hal::i2c::I2c<Error = E>,
+            I2C: crate::eh::i2c::I2c<Error = E>,
         {
             /// Create a new instance of the device in OneShot mode.
             pub fn $create(i2c: I2C, address: TargetAddr) -> Self {

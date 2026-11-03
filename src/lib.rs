@@ -214,6 +214,15 @@ impl BitFlags {
     const COMP_QUE0: u16 = 0b0000_0000_0000_0001;
 }
 
+#[cfg(all(feature = "async", feature = "sync"))]
+compile_error!("async and sync features cannot be enabled at the same time");
+
+#[cfg(feature = "async")]
+pub use embedded_hal_async as eh;
+#[cfg(feature = "sync")]
+pub use embedded_hal as eh;
+
+
 pub mod channel;
 pub use channel::ChannelId;
 mod construction;

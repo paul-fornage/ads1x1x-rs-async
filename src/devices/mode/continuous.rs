@@ -7,7 +7,7 @@ use core::marker::PhantomData;
 
 impl<I2C, IC, CONV, E> Ads1x1x<I2C, IC, CONV, mode::Continuous>
 where
-    I2C: embedded_hal::i2c::I2c<Error = E>,
+    I2C: crate::eh::i2c::I2c<Error = E>,
     CONV: conversion::ConvertMeasurement,
 {
     /// Changes to one-shot operating mode.

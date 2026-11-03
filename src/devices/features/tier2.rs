@@ -7,7 +7,7 @@ use crate::{
 
 impl<I2C, IC, CONV, MODE, E> Ads1x1x<I2C, IC, CONV, MODE>
 where
-    I2C: embedded_hal::i2c::I2c<Error = E>,
+    I2C: crate::eh::i2c::I2c<Error = E>,
     IC: ic::Tier2Features,
     CONV: conversion::ConvertThreshold<E>,
 {

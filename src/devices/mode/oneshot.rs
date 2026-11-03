@@ -9,7 +9,7 @@ use crate::{
 
 impl<I2C, IC, CONV, E> Ads1x1x<I2C, IC, CONV, mode::OneShot>
 where
-    I2C: embedded_hal::i2c::I2c<Error = E>,
+    I2C: crate::eh::i2c::I2c<Error = E>,
     CONV: conversion::ConvertMeasurement,
 {
     /// Changes to continuous operating mode.
@@ -39,7 +39,7 @@ where
 
 impl<I2C, IC, CONV, E> Ads1x1x<I2C, IC, CONV, mode::OneShot>
 where
-    I2C: embedded_hal::i2c::I2c<Error = E>,
+    I2C: crate::eh::i2c::I2c<Error = E>,
     CONV: conversion::ConvertMeasurement,
 {
     /// Requests that the ADC begins a conversion on the specified channel.
