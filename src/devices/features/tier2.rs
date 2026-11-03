@@ -14,7 +14,7 @@ where
     /// Sets the input voltage measurable range.
     ///
     /// This configures the programmable gain amplifier (PGA) and determines the measurable input voltage range.
-    pub fn set_full_scale_range(&mut self, range: FullScaleRange) -> Result<(), Error<E>> {
+    pub async fn set_full_scale_range(&mut self, range: FullScaleRange) -> Result<(), Error<E>> {
         use crate::FullScaleRange as FSR;
         let cfg = self.config.clone();
         let config = match range {
@@ -40,7 +40,7 @@ where
                 .with_low(BF::PGA1)
                 .with_high(BF::PGA0),
         };
-        self.write_register(Register::CONFIG, config.bits)?;
+        self.write_register(Register::CONFIG, config.bits).await?;
         self.config = config;
         Ok(())
     }
@@ -52,9 +52,9 @@ where
     ///
     /// The input value must be within `[2047..-2048]` for 12-bit devices (`ADS101x`)
     /// and within `[32767..-32768]` for 16-bit devices (`ADS111x`).
-    pub fn set_low_threshold_raw(&mut self, value: i16) -> Result<(), Error<E>> {
+    pub async fn set_low_threshold_raw(&mut self, value: i16) -> Result<(), Error<E>> {
         let register_value = CONV::convert_threshold(value)?;
-        self.write_register(Register::LOW_TH, register_value)
+        self.write_register(Register::LOW_TH, register_value).await
     }
 
     /// Sets the raw comparator upper threshold.
@@ -64,24 +64,24 @@ where
     ///
     /// The input value must be within `[2047..-2048]` for 12-bit devices (`ADS101x`)
     /// and within `[32767..-32768]` for 16-bit devices (`ADS111x`).
-    pub fn set_high_threshold_raw(&mut self, value: i16) -> Result<(), Error<E>> {
+    pub async fn set_high_threshold_raw(&mut self, value: i16) -> Result<(), Error<E>> {
         let register_value = CONV::convert_threshold(value)?;
-        self.write_register(Register::HIGH_TH, register_value)
+        self.write_register(Register::HIGH_TH, register_value).await
     }
 
     /// Sets the comparator mode.
-    pub fn set_comparator_mode(&mut self, mode: ComparatorMode) -> Result<(), Error<E>> {
+    pub async fn set_comparator_mode(&mut self, mode: ComparatorMode) -> Result<(), Error<E>> {
         let config = match mode {
             ComparatorMode::Traditional => self.config.with_low(BF::COMP_MODE),
             ComparatorMode::Window => self.config.with_high(BF::COMP_MODE),
         };
-        self.write_register(Register::CONFIG, config.bits)?;
+        self.write_register(Register::CONFIG, config.bits).await?;
         self.config = config;
         Ok(())
     }
 
     /// Sets the comparator polarity.
-    pub fn set_comparator_polarity(
+    pub async fn set_comparator_polarity(
         &mut self,
         polarity: ComparatorPolarity,
     ) -> Result<(), Error<E>> {
@@ -89,13 +89,13 @@ where
             ComparatorPolarity::ActiveLow => self.config.with_low(BF::COMP_POL),
             ComparatorPolarity::ActiveHigh => self.config.with_high(BF::COMP_POL),
         };
-        self.write_register(Register::CONFIG, config.bits)?;
+        self.write_register(Register::CONFIG, config.bits).await?;
         self.config = config;
         Ok(())
     }
 
     /// Sets the comparator latching.
-    pub fn set_comparator_latching(
+    pub async fn set_comparator_latching(
         &mut self,
         latching: ComparatorLatching,
     ) -> Result<(), Error<E>> {
@@ -103,7 +103,7 @@ where
             ComparatorLatching::Nonlatching => self.config.with_low(BF::COMP_LAT),
             ComparatorLatching::Latching => self.config.with_high(BF::COMP_LAT),
         };
-        self.write_register(Register::CONFIG, config.bits)?;
+        self.write_register(Register::CONFIG, config.bits).await?;
         self.config = config;
         Ok(())
     }
@@ -111,13 +111,13 @@ where
     /// Activates the comparator and sets the alert queue.
     ///
     /// The comparator can be disabled with [`disable_comparator`](Self::disable_comparator).
-    pub fn set_comparator_queue(&mut self, queue: ComparatorQueue) -> Result<(), Error<E>> {
+    pub async fn set_comparator_queue(&mut self, queue: ComparatorQueue) -> Result<(), Error<E>> {
         let config = match queue {
             ComparatorQueue::One => self.config.with_low(BF::COMP_QUE1).with_low(BF::COMP_QUE0),
             ComparatorQueue::Two => self.config.with_low(BF::COMP_QUE1).with_high(BF::COMP_QUE0),
             ComparatorQueue::Four => self.config.with_high(BF::COMP_QUE1).with_low(BF::COMP_QUE0),
         };
-        self.write_register(Register::CONFIG, config.bits)?;
+        self.write_register(Register::CONFIG, config.bits).await?;
         self.config = config;
         Ok(())
     }
@@ -128,12 +128,12 @@ where
     ///
     /// The comparator can be enabled by setting the comparator queue using
     /// the [`set_comparator_queue`](Self::set_comparator_queue) method.
-    pub fn disable_comparator(&mut self) -> Result<(), Error<E>> {
+    pub async fn disable_comparator(&mut self) -> Result<(), Error<E>> {
         let config = self
             .config
             .with_high(BF::COMP_QUE1)
             .with_high(BF::COMP_QUE0);
-        self.write_register(Register::CONFIG, config.bits)?;
+        self.write_register(Register::CONFIG, config.bits).await?;
         self.config = config;
         Ok(())
     }
@@ -144,16 +144,16 @@ where
     /// in continuous-conversion mode, provides a continuous-conversion ready pulse.
     ///
     /// When calling this the comparator will be reset to default and any thresholds will be cleared.
-    pub fn use_alert_rdy_pin_as_ready(&mut self) -> Result<(), Error<E>> {
+    pub async fn use_alert_rdy_pin_as_ready(&mut self) -> Result<(), Error<E>> {
         if self.config
             != self
                 .config
                 .with_high(BF::COMP_QUE1)
                 .with_high(BF::COMP_QUE0)
         {
-            self.set_comparator_queue(ComparatorQueue::default())?;
+            self.set_comparator_queue(ComparatorQueue::default()).await?;
         }
-        self.write_register(Register::HIGH_TH, 0x8000)?;
-        self.write_register(Register::LOW_TH, 0)
+        self.write_register(Register::HIGH_TH, 0x8000).await?;
+        self.write_register(Register::LOW_TH, 0).await
     }
 }

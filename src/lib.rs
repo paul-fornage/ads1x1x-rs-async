@@ -1,8 +1,8 @@
 //! This is a platform-agnostic Rust driver for the ADS1013, ADS1014, ADS1015,
 //! ADS1113, ADS1114, and ADS1115 ultra-small, low-power
-//! analog-to-digital converters (ADC), based on the [`embedded-hal`] traits.
+//! analog-to-digital converters (ADC), based on the [`embedded-hal-async`] traits.
 //!
-//! [`embedded-hal`]: https://github.com/rust-embedded/embedded-hal
+//! [`embedded-hal-async`]: https://docs.rs/embedded-hal-async
 //!
 //! This driver allows you to:
 //! - Set the operating mode to one-shot or continuous. See: [`into_continuous()`].
@@ -74,7 +74,7 @@
 //!
 //! # Examples
 //!
-//! To use this driver, import this crate and an `embedded_hal` implementation,
+//! To use this driver, import this crate and an `embedded_hal_async` implementation,
 //! then instantiate the appropriate device.
 //! In the following examples an instance of the device ADS1013 will be created.
 //!
@@ -85,39 +85,39 @@
 //! ## Creating a Driver Instance for an ADS1013
 //!
 //! ```no_run
-//! use linux_embedded_hal::I2cdev;
 //! use ads1x1x::{Ads1x1x, TargetAddr};
+//! use embedded_hal_async::i2c::I2c;
 //!
-//! let dev = I2cdev::new("/dev/i2c-1").unwrap();
-//! let adc = Ads1x1x::new_ads1013(dev, TargetAddr::default());
-//! // do something...
-//!
-//! // get the I2C device back
-//! let dev = adc.destroy_ads1013();
+//! fn create_and_destroy<I2C: I2c>(i2c: I2C) -> I2C {
+//!     let adc = Ads1x1x::new_ads1013(i2c, TargetAddr::default());
+//!     adc.destroy_ads1013()
+//! }
 //! ```
 //!
 //! ## Creating a driver instance for an ADS1013 with the ADDR pin connected to SDA.
 //!
 //! ```no_run
-//! use linux_embedded_hal::I2cdev;
 //! use ads1x1x::{Ads1x1x, TargetAddr};
+//! use embedded_hal_async::i2c::I2c;
 //!
-//! let dev = I2cdev::new("/dev/i2c-1").unwrap();
-//! let adc = Ads1x1x::new_ads1013(dev, TargetAddr::Sda);
+//! fn create<I2C: I2c>(i2c: I2C) {
+//!     let adc = Ads1x1x::new_ads1013(i2c, TargetAddr::Sda);
+//! }
 //! ```
 //!
 //! ## Taking a One-Shot Measurement
 //!
 //! ```no_run
 //! use ads1x1x::{channel, Ads1x1x, TargetAddr};
-//! use linux_embedded_hal::I2cdev;
-//! use nb::block;
+//! use embedded_hal_async::{delay::DelayNs, i2c::I2c};
 //!
-//! let dev = I2cdev::new("/dev/i2c-1").unwrap();
-//! let mut adc = Ads1x1x::new_ads1013(dev, TargetAddr::default());
-//! let measurement = block!(adc.read(channel::DifferentialA0A1)).unwrap();
-//! println!("Measurement: {}", measurement);
-//! let _dev = adc.destroy_ads1013(); // get I2C device back
+//! async fn measure<I2C: I2c>(
+//!     i2c: I2C,
+//!     delay: &mut impl DelayNs,
+//! ) -> Result<i16, ads1x1x::Error<I2C::Error>> {
+//!     let mut adc = Ads1x1x::new_ads1013(i2c, TargetAddr::default());
+//!     adc.read(channel::DifferentialA0A1, delay).await
+//! }
 //! ```
 //!
 //! ## Changing to Continuous Conversion Mode and Reading the Last Measurement
@@ -126,18 +126,14 @@
 //! In this case, you can retrieve the unchanged device from the error type.
 //!
 //! ```no_run
-//! use linux_embedded_hal::I2cdev;
-//! use ads1x1x::{Ads1x1x, ModeChangeError, TargetAddr};
+//! use ads1x1x::{Ads1x1x, Error, ModeChangeError, TargetAddr};
+//! use embedded_hal_async::i2c::I2c;
 //!
-//! let dev = I2cdev::new("/dev/i2c-1").unwrap();
-//! let adc = Ads1x1x::new_ads1013(dev, TargetAddr::default());
-//! match adc.into_continuous() {
-//!     Err(ModeChangeError::I2C(e, adc)) => {
-//!         panic!("Mode change failed: {e}")
-//!     },
-//!     Ok(mut adc) => {
-//!         let measurement = adc.read().unwrap();
-//!         // ...
+//! async fn measure<I2C: I2c>(i2c: I2C) -> Result<i16, Error<I2C::Error>> {
+//!     let adc = Ads1x1x::new_ads1013(i2c, TargetAddr::default());
+//!     match adc.into_continuous().await {
+//!         Err(ModeChangeError::I2C(e, adc)) => Err(Error::I2C(e)),
+//!         Ok(mut adc) => adc.read().await,
 //!     }
 //! }
 //! ```
@@ -148,12 +144,13 @@
 //! For 16-bit devices, the available data rates are given by `DataRate16Bit`.
 //!
 //! ```no_run
-//! use linux_embedded_hal::I2cdev;
-//! use ads1x1x::{Ads1x1x, DataRate16Bit, TargetAddr};
+//! use ads1x1x::{Ads1x1x, DataRate16Bit, Error, TargetAddr};
+//! use embedded_hal_async::i2c::I2c;
 //!
-//! let dev = I2cdev::new("/dev/i2c-1").unwrap();
-//! let mut adc = Ads1x1x::new_ads1115(dev, TargetAddr::default());
-//! adc.set_data_rate(DataRate16Bit::Sps860).unwrap();
+//! async fn configure<I2C: I2c>(i2c: I2C) -> Result<(), Error<I2C::Error>> {
+//!     let mut adc = Ads1x1x::new_ads1115(i2c, TargetAddr::default());
+//!     adc.set_data_rate(DataRate16Bit::Sps860).await
+//! }
 //! ```
 //!
 //! ## Configuring the Comparator
@@ -165,22 +162,22 @@
 //! the controller.
 //!
 //! ```no_run
-//! use linux_embedded_hal::I2cdev;
 //! use ads1x1x::{
 //!     Ads1x1x, TargetAddr, ComparatorQueue, ComparatorPolarity,
-//!     ComparatorMode, ComparatorLatching, FullScaleRange
+//!     ComparatorMode, ComparatorLatching, Error, FullScaleRange
 //! };
+//! use embedded_hal_async::i2c::I2c;
 //!
-//! let dev = I2cdev::new("/dev/i2c-1").unwrap();
-//! let address = TargetAddr::default();
-//! let mut adc = Ads1x1x::new_ads1015(dev, address);
-//! adc.set_comparator_queue(ComparatorQueue::Two).unwrap();
-//! adc.set_comparator_polarity(ComparatorPolarity::ActiveHigh).unwrap();
-//! adc.set_comparator_mode(ComparatorMode::Window).unwrap();
-//! adc.set_full_scale_range(FullScaleRange::Within2_048V).unwrap();
-//! adc.set_low_threshold_raw(-1500).unwrap();
-//! adc.set_high_threshold_raw(1500).unwrap();
-//! adc.set_comparator_latching(ComparatorLatching::Latching).unwrap();
+//! async fn configure<I2C: I2c>(i2c: I2C) -> Result<(), Error<I2C::Error>> {
+//!     let mut adc = Ads1x1x::new_ads1015(i2c, TargetAddr::default());
+//!     adc.set_comparator_queue(ComparatorQueue::Two).await?;
+//!     adc.set_comparator_polarity(ComparatorPolarity::ActiveHigh).await?;
+//!     adc.set_comparator_mode(ComparatorMode::Window).await?;
+//!     adc.set_full_scale_range(FullScaleRange::Within2_048V).await?;
+//!     adc.set_low_threshold_raw(-1500).await?;
+//!     adc.set_high_threshold_raw(1500).await?;
+//!     adc.set_comparator_latching(ComparatorLatching::Latching).await
+//! }
 //! ```
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
@@ -214,13 +211,7 @@ impl BitFlags {
     const COMP_QUE0: u16 = 0b0000_0000_0000_0001;
 }
 
-#[cfg(all(feature = "async", feature = "sync"))]
-compile_error!("async and sync features cannot be enabled at the same time");
-
-#[cfg(feature = "async")]
 pub use embedded_hal_async as eh;
-#[cfg(feature = "sync")]
-pub use embedded_hal as eh;
 
 
 pub mod channel;

@@ -1,6 +1,6 @@
 use ads1x1x::channel;
+use embedded_hal_mock::eh1::delay::NoopDelay;
 use embedded_hal_mock::eh1::i2c::Transaction as I2cTrans;
-use nb::block;
 
 mod common;
 use crate::common::{
@@ -13,8 +13,8 @@ macro_rules! mux_test {
         mod $name {
             use super::*;
 
-            #[test]
-            fn can_read() {
+            #[pollster::test]
+            async fn can_read() {
                 let default_config = Config::default();
                 let config = Config::default().with_high(BF::OS).with_high($config_bits);
                 let transactions = [
@@ -32,13 +32,16 @@ macro_rules! mux_test {
                     I2cTrans::write_read(DEV_ADDR, vec![Register::CONVERSION], vec![0x80, 0x00]),
                 ];
                 let mut dev = new(&transactions);
-                let measurement = block!(dev.read(channel::$CS)).unwrap();
+                let measurement = dev
+                    .read(channel::$CS, &mut NoopDelay::new())
+                    .await
+                    .unwrap();
                 assert_eq!(-2048, measurement);
                 destroy(dev);
             }
 
-            #[test]
-            fn read_then_read_different_triggers_new_measurement() {
+            #[pollster::test]
+            async fn read_then_read_different_triggers_new_measurement() {
                 let default_config = Config::default();
                 let config = Config::default().with_high(BF::OS).with_high($config_bits);
                 let other_config = Config::default().with_high($other_config_bits);
@@ -49,6 +52,12 @@ macro_rules! mux_test {
                         vec![default_config.msb(), default_config.lsb()],
                     ),
                     I2cTrans::write(DEV_ADDR, vec![Register::CONFIG, config.msb(), config.lsb()]),
+                    I2cTrans::write_read(
+                        DEV_ADDR,
+                        vec![Register::CONFIG],
+                        vec![config.msb(), config.lsb()],
+                    ),
+                    I2cTrans::write_read(DEV_ADDR, vec![Register::CONVERSION], vec![0x7F, 0xF0]),
                     I2cTrans::write_read(
                         DEV_ADDR,
                         vec![Register::CONFIG],
@@ -66,14 +75,21 @@ macro_rules! mux_test {
                     I2cTrans::write_read(DEV_ADDR, vec![Register::CONVERSION], vec![0x80, 0x00]),
                 ];
                 let mut dev = new(&transactions);
-                assert_would_block!(dev.read(channel::$CS));
-                let measurement = block!(dev.read(channel::$other_CS)).unwrap();
+                let first_measurement = dev
+                    .read(channel::$CS, &mut NoopDelay::new())
+                    .await
+                    .unwrap();
+                assert_eq!(2047, first_measurement);
+                let measurement = dev
+                    .read(channel::$other_CS, &mut NoopDelay::new())
+                    .await
+                    .unwrap();
                 assert_eq!(-2048, measurement);
                 destroy(dev);
             }
 
-            #[test]
-            fn continuous_can_select_channel() {
+            #[pollster::test]
+            async fn continuous_can_select_channel() {
                 let config1 = Config::default().with_low(BF::OP_MODE);
                 let config2 = config1.with_high($config_bits);
                 let transactions = [
@@ -87,8 +103,8 @@ macro_rules! mux_test {
                     ),
                 ];
                 let dev = new(&transactions);
-                let mut dev = dev.into_continuous().ok().unwrap();
-                dev.select_channel(channel::$CS).unwrap();
+                let mut dev = dev.into_continuous().await.ok().unwrap();
+                dev.select_channel(channel::$CS).await.unwrap();
                 destroy(dev);
             }
         }

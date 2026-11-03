@@ -93,12 +93,3 @@ impl_new_destroy_i2c!(Ads1114, new_ads1114, destroy_ads1114, ic::Resolution16Bit
 impl_new_destroy_i2c!(Ads1015, new_ads1015, destroy_ads1015, ic::Resolution12Bit);
 impl_new_destroy_i2c!(Ads1115, new_ads1115, destroy_ads1115, ic::Resolution16Bit);
 
-#[macro_export]
-macro_rules! assert_would_block {
-    ($result: expr) => {
-        match $result {
-            Err(nb::Error::WouldBlock) => (),
-            _ => panic!("Would not block."),
-        }
-    };
-}
