@@ -4,7 +4,7 @@ use crate::{ic, Ads1x1x, BitFlags as BF, DataRate12Bit, DataRate16Bit, Error, Re
 
 impl<I2C, IC, MODE, E> Ads1x1x<I2C, IC, ic::Resolution12Bit, MODE>
 where
-    I2C: embedded_hal::i2c::I2c<Error = E>,
+    I2C: crate::eh::i2c::I2c<Error = E>,
 {
     /// Sets the data rate.
     pub fn set_data_rate(&mut self, rate: DataRate12Bit) -> Result<(), Error<E>> {
@@ -27,7 +27,7 @@ where
 
 impl<I2C, IC, MODE, E> Ads1x1x<I2C, IC, ic::Resolution16Bit, MODE>
 where
-    I2C: embedded_hal::i2c::I2c<Error = E>,
+    I2C: crate::eh::i2c::I2c<Error = E>,
 {
     /// Sets the data rate.
     pub fn set_data_rate(&mut self, rate: DataRate16Bit) -> Result<(), Error<E>> {

@@ -4,7 +4,7 @@ use crate::{devices::OperatingMode, Ads1x1x, BitFlags, Config, Error, Register};
 
 impl<I2C, IC, CONV, MODE, E> Ads1x1x<I2C, IC, CONV, MODE>
 where
-    I2C: embedded_hal::i2c::I2c<Error = E>,
+    I2C: crate::eh::i2c::I2c<Error = E>,
 {
     pub(super) fn write_register(&mut self, register: u8, data: u16) -> Result<(), Error<E>> {
         let data = data.to_be_bytes();
