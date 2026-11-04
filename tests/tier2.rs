@@ -10,7 +10,9 @@ use crate::common::{
 
 macro_rules! set_value_test {
     ($name:ident, $method:ident, $value:expr, $reg:ident, $msb:expr, $lsb:expr) => {
-        #[pollster::test]
+        #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+        #[cfg_attr(feature = "async", pollster::test)]
+        #[cfg_attr(not(feature = "async"), test)]
         async fn $name() {
             let transactions = [I2cTrans::write(DEV_ADDR, vec![Register::$reg, $msb, $lsb])];
             let mut dev = new_ads1014(&transactions);
@@ -80,7 +82,9 @@ mod can_set_comparator_latching {
     );
 }
 
-#[pollster::test]
+#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "async", pollster::test)]
+#[cfg_attr(not(feature = "async"), test)]
 async fn can_disable_comparator() {
     let config = Config::default()
         .with_high(BF::COMP_QUE1)
@@ -122,7 +126,9 @@ mod can_set_comparator_queue {
     );
 }
 
-#[pollster::test]
+#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "async", pollster::test)]
+#[cfg_attr(not(feature = "async"), test)]
 async fn can_use_alert_rdy_pin_as_rdy_does_not_disable_comparator_if_already_disabled() {
     let transactions = [
         I2cTrans::write(DEV_ADDR, vec![Register::HIGH_TH, 0b1000_0000, 0]),
@@ -133,7 +139,9 @@ async fn can_use_alert_rdy_pin_as_rdy_does_not_disable_comparator_if_already_dis
     destroy_ads1014(dev);
 }
 
-#[pollster::test]
+#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "async", pollster::test)]
+#[cfg_attr(not(feature = "async"), test)]
 async fn can_use_alert_rdy_pin_as_rdy_disabled_comparator() {
     let config = Config::default()
         .with_low(BF::COMP_QUE1)

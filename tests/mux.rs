@@ -1,4 +1,5 @@
 use ads1x1x::channel;
+#[cfg(feature = "async")]
 use embedded_hal_mock::eh1::delay::NoopDelay;
 use embedded_hal_mock::eh1::i2c::Transaction as I2cTrans;
 
@@ -13,7 +14,9 @@ macro_rules! mux_test {
         mod $name {
             use super::*;
 
-            #[pollster::test]
+            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "async", pollster::test)]
+            #[cfg_attr(not(feature = "async"), test)]
             async fn can_read() {
                 let default_config = Config::default();
                 let config = Config::default().with_high(BF::OS).with_high($config_bits);
@@ -32,15 +35,20 @@ macro_rules! mux_test {
                     I2cTrans::write_read(DEV_ADDR, vec![Register::CONVERSION], vec![0x80, 0x00]),
                 ];
                 let mut dev = new(&transactions);
+                #[cfg(feature = "async")]
                 let measurement = dev
                     .read(channel::$CS, &mut NoopDelay::new())
                     .await
                     .unwrap();
+                #[cfg(not(feature = "async"))]
+                let measurement = nb::block!(dev.read(channel::$CS)).unwrap();
                 assert_eq!(-2048, measurement);
                 destroy(dev);
             }
 
-            #[pollster::test]
+            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "async", pollster::test)]
+            #[cfg_attr(not(feature = "async"), test)]
             async fn read_then_read_different_triggers_new_measurement() {
                 let default_config = Config::default();
                 let config = Config::default().with_high(BF::OS).with_high($config_bits);
@@ -75,20 +83,64 @@ macro_rules! mux_test {
                     I2cTrans::write_read(DEV_ADDR, vec![Register::CONVERSION], vec![0x80, 0x00]),
                 ];
                 let mut dev = new(&transactions);
+                #[cfg(feature = "async")]
                 let first_measurement = dev
                     .read(channel::$CS, &mut NoopDelay::new())
                     .await
                     .unwrap();
+                #[cfg(not(feature = "async"))]
+                let first_measurement = nb::block!(dev.read(channel::$CS)).unwrap();
                 assert_eq!(2047, first_measurement);
+                #[cfg(feature = "async")]
                 let measurement = dev
                     .read(channel::$other_CS, &mut NoopDelay::new())
                     .await
                     .unwrap();
+                #[cfg(not(feature = "async"))]
+                let measurement = nb::block!(dev.read(channel::$other_CS)).unwrap();
                 assert_eq!(-2048, measurement);
                 destroy(dev);
             }
 
-            #[pollster::test]
+            #[cfg(not(feature = "async"))]
+            #[test]
+            fn changing_channel_before_reading_result_starts_new_conversion() {
+                let default_config = Config::default();
+                let config = Config::default().with_high(BF::OS).with_high($config_bits);
+                let other_config = Config::default().with_high($other_config_bits);
+                let transactions = [
+                    I2cTrans::write_read(
+                        DEV_ADDR,
+                        vec![Register::CONFIG],
+                        vec![default_config.msb(), default_config.lsb()],
+                    ),
+                    I2cTrans::write(DEV_ADDR, vec![Register::CONFIG, config.msb(), config.lsb()]),
+                    I2cTrans::write_read(
+                        DEV_ADDR,
+                        vec![Register::CONFIG],
+                        vec![config.msb(), config.lsb()],
+                    ),
+                    I2cTrans::write(
+                        DEV_ADDR,
+                        vec![Register::CONFIG, other_config.msb(), other_config.lsb()],
+                    ),
+                    I2cTrans::write_read(
+                        DEV_ADDR,
+                        vec![Register::CONFIG],
+                        vec![other_config.msb(), other_config.lsb()],
+                    ),
+                    I2cTrans::write_read(DEV_ADDR, vec![Register::CONVERSION], vec![0x80, 0x00]),
+                ];
+                let mut dev = new(&transactions);
+                assert!(matches!(dev.read(channel::$CS), Err(nb::Error::WouldBlock)));
+                let measurement = nb::block!(dev.read(channel::$other_CS)).unwrap();
+                assert_eq!(-2048, measurement);
+                destroy(dev);
+            }
+
+            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "async", pollster::test)]
+            #[cfg_attr(not(feature = "async"), test)]
             async fn continuous_can_select_channel() {
                 let config1 = Config::default().with_low(BF::OP_MODE);
                 let config2 = config1.with_high($config_bits);

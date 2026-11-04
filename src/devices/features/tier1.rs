@@ -2,6 +2,7 @@
 
 use crate::{ic, Ads1x1x, BitFlags as BF, DataRate12Bit, DataRate16Bit, Error, Register};
 
+#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
 impl<I2C, IC, MODE, E> Ads1x1x<I2C, IC, ic::Resolution12Bit, MODE>
 where
     I2C: crate::eh::i2c::I2c<Error = E>,
@@ -25,6 +26,7 @@ where
     }
 }
 
+#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
 impl<I2C, IC, MODE, E> Ads1x1x<I2C, IC, ic::Resolution16Bit, MODE>
 where
     I2C: crate::eh::i2c::I2c<Error = E>,

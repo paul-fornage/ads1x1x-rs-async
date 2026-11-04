@@ -1,4 +1,5 @@
 use ads1x1x::{channel, DataRate12Bit, DataRate16Bit};
+#[cfg(feature = "async")]
 use embedded_hal_mock::eh1::delay::NoopDelay;
 use embedded_hal_mock::eh1::i2c::Transaction as I2cTrans;
 
@@ -13,7 +14,26 @@ macro_rules! measure_tests {
         mod $IC {
             use super::*;
 
-            #[pollster::test]
+            #[cfg(not(feature = "async"))]
+            #[test]
+            fn read_if_measurement_in_progress() {
+                let config = Config::default().with_low(BF::OS);
+                let transactions = [I2cTrans::write_read(
+                    DEV_ADDR,
+                    vec![Register::CONFIG],
+                    vec![config.msb(), config.lsb()],
+                )];
+                let mut dev = $create(&transactions);
+                assert!(matches!(
+                    dev.read(channel::DifferentialA0A1),
+                    Err(nb::Error::WouldBlock)
+                ));
+                $destroy(dev);
+            }
+
+            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "async", pollster::test)]
+            #[cfg_attr(not(feature = "async"), test)]
             async fn can_measure() {
                 let default_config = Config::default();
                 let config_with_os = Config::default().with_high(BF::OS);
@@ -35,15 +55,20 @@ macro_rules! measure_tests {
                     I2cTrans::write_read(DEV_ADDR, vec![Register::CONVERSION], vec![0x80, 0x00]),
                 ];
                 let mut dev = $create(&transactions);
+                #[cfg(feature = "async")]
                 let measurement = dev
                     .read(channel::DifferentialA0A1, &mut NoopDelay::new())
                     .await
                     .unwrap();
+                #[cfg(not(feature = "async"))]
+                let measurement = nb::block!(dev.read(channel::DifferentialA0A1)).unwrap();
                 assert_eq!($expected, measurement);
                 $destroy(dev);
             }
 
-            #[pollster::test]
+            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "async", pollster::test)]
+            #[cfg_attr(not(feature = "async"), test)]
             async fn can_measure_continuous() {
                 let config = Config::default().with_low(BF::OP_MODE);
                 let transactions = [
@@ -68,7 +93,9 @@ mod data_rate_12bit {
 
     macro_rules! test {
         ($name:ident, $variant:ident, $config:expr) => {
-            #[pollster::test]
+            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "async", pollster::test)]
+            #[cfg_attr(not(feature = "async"), test)]
             async fn $name() {
                 let transactions = [I2cTrans::write(
                     DEV_ADDR,
@@ -144,7 +171,9 @@ mod data_rate_16bit {
 
     macro_rules! test {
         ($name:ident, $variant:ident, $config:expr) => {
-            #[pollster::test]
+            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "async", pollster::test)]
+            #[cfg_attr(not(feature = "async"), test)]
             async fn $name() {
                 let transactions = [I2cTrans::write(
                     DEV_ADDR,
@@ -223,7 +252,9 @@ mod data_rate_16bit {
     );
 }
 
-#[pollster::test]
+#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "async", pollster::test)]
+#[cfg_attr(not(feature = "async"), test)]
 async fn can_read_measurement_in_progress() {
     let config_os = Config::default().with_low(BF::OS);
     let transactions = [I2cTrans::write_read(
@@ -232,11 +263,14 @@ async fn can_read_measurement_in_progress() {
         vec![config_os.msb(), config_os.lsb()],
     )];
     let mut dev = new_ads1013(&transactions);
-    assert!(dev.is_measurement_in_progress().await.unwrap());
+    let in_progress = dev.is_measurement_in_progress().await.unwrap();
+    assert!(in_progress);
     destroy_ads1013(dev);
 }
 
-#[pollster::test]
+#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "async", pollster::test)]
+#[cfg_attr(not(feature = "async"), test)]
 async fn can_read_measurement_not_in_progress() {
     let config_os = Config::default().with_high(BF::OS);
     let transactions = [I2cTrans::write_read(
@@ -245,11 +279,14 @@ async fn can_read_measurement_not_in_progress() {
         vec![config_os.msb(), config_os.lsb()],
     )];
     let mut dev = new_ads1013(&transactions);
-    assert!(!dev.is_measurement_in_progress().await.unwrap());
+    let in_progress = dev.is_measurement_in_progress().await.unwrap();
+    assert!(!in_progress);
     destroy_ads1013(dev);
 }
 
-#[pollster::test]
+#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "async", pollster::test)]
+#[cfg_attr(not(feature = "async"), test)]
 async fn can_convert_to_continuous() {
     let config = Config::default().with_low(BF::OP_MODE);
     let transactions = [I2cTrans::write(
@@ -261,7 +298,9 @@ async fn can_convert_to_continuous() {
     destroy_ads1013(dev);
 }
 
-#[pollster::test]
+#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "async", pollster::test)]
+#[cfg_attr(not(feature = "async"), test)]
 async fn can_convert_to_one_shot() {
     let config_cont = Config::default().with_low(BF::OP_MODE);
     let config_os = Config::default();
