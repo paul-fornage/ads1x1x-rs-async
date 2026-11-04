@@ -14,16 +14,23 @@ where
     ) -> Result<(), Error<E>> {
         let data = data.to_be_bytes();
         let payload: [u8; 3] = [register as u8, data[0], data[1]];
-        self.i2c.write(self.address, &payload).await.map_err(Error::I2C)
+        self.i2c.write(self.address, &payload).await.map_err(Error::I2C)?;
+        #[cfg(feature = "defmt")]
+        defmt::trace!("Wrote register {:?} with data {:04X}", register, data);
+        Ok(())
     }
 
     pub(super) async fn read_register(&mut self, register: Register) -> Result<u16, Error<E>> {
         let mut data = [0, 0];
-        self.i2c
+        let data = self.i2c
             .write_read(self.address, &[register as u8], &mut data)
             .await
             .map_err(Error::I2C)
-            .and(Ok(u16::from_be_bytes(data)))
+            .and(Ok(u16::from_be_bytes(data)))?;
+
+        #[cfg(feature = "defmt")]
+        defmt::trace!("Read register {:?} with data {:04X}", register, data);
+        Ok(data)
     }
 
     pub(super) async fn set_operating_mode(&mut self, mode: OperatingMode) -> Result<(), Error<E>> {
