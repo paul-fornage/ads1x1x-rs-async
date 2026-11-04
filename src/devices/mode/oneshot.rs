@@ -2,13 +2,12 @@
 
 use core::marker::PhantomData;
 
-use crate::eh::delay::DelayNs;
+#[cfg(feature = "async")]
+use crate::{eh::delay::DelayNs, BitFlags, ChannelId, Register};
 
-use crate::{
-    conversion, devices::OperatingMode, mode, Ads1x1x, BitFlags, ChannelId, Error, ModeChangeError,
-    Register,
-};
+use crate::{conversion, devices::OperatingMode, mode, Ads1x1x, Error, ModeChangeError};
 
+#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
 impl<I2C, IC, CONV, E> Ads1x1x<I2C, IC, CONV, mode::OneShot>
 where
     I2C: crate::eh::i2c::I2c<Error = E>,
@@ -26,6 +25,8 @@ where
             address: self.address,
             config: self.config,
             fsr: self.fsr,
+            #[cfg(not(feature = "async"))]
+            a_conversion_was_started: true,
             _conv: PhantomData,
             _ic: PhantomData,
             _mode: PhantomData,
@@ -42,6 +43,7 @@ where
     /// Waits for any previous conversion to finish before starting a new one.
     /// Polls conversion status with an async delay of at least 100 microseconds
     /// between checks while the ADC is busy.
+    #[cfg(feature = "async")]
     pub async fn read<CH: ChannelId<Self>, D: DelayNs + ?Sized>(
         &mut self,
         _channel: CH,
@@ -57,6 +59,7 @@ where
         Ok(CONV::convert_measurement(value))
     }
 
+    #[cfg(feature = "async")]
     async fn wait_until_ready<D: DelayNs + ?Sized>(&mut self, delay: &mut D) -> Result<(), Error<E>> {
         while self.is_measurement_in_progress().await? {
             delay.delay_us(100).await;

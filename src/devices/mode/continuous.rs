@@ -5,6 +5,7 @@ use crate::{
 };
 use core::marker::PhantomData;
 
+#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
 impl<I2C, IC, CONV, E> Ads1x1x<I2C, IC, CONV, mode::Continuous>
 where
     I2C: crate::eh::i2c::I2c<Error = E>,
@@ -22,6 +23,8 @@ where
             address: self.address,
             config: self.config,
             fsr: self.fsr,
+            #[cfg(not(feature = "async"))]
+            a_conversion_was_started: false,
             _conv: PhantomData,
             _ic: PhantomData,
             _mode: PhantomData,

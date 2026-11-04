@@ -1,7 +1,9 @@
 //! This is a platform-agnostic Rust driver for the ADS1013, ADS1014, ADS1015,
 //! ADS1113, ADS1114, and ADS1115 ultra-small, low-power
-//! analog-to-digital converters (ADC), based on the [`embedded-hal-async`] traits.
+//! analog-to-digital converters (ADC), based on the [`embedded-hal`] traits,
+//! with optional support for [`embedded-hal-async`].
 //!
+//! [`embedded-hal`]: https://docs.rs/embedded-hal
 //! [`embedded-hal-async`]: https://docs.rs/embedded-hal-async
 //!
 //! This driver allows you to:
@@ -72,9 +74,18 @@
 //! - [ADS101x](http://www.ti.com/lit/ds/symlink/ads1015.pdf)
 //! - [ADS111x](http://www.ti.com/lit/ds/symlink/ads1115.pdf)
 //!
+//! # Features
+//!
+//! The default API uses synchronous I²C. One-shot reads return
+//! `nb::Error::WouldBlock` until a conversion is ready.
+//!
+//! Enable the `async` feature to use asynchronous I²C. Methods that communicate
+//! with the device become async, and one-shot reads take an async delay and wait
+//! for the conversion to complete. Constructors and destructors stay synchronous.
+//!
 //! # Examples
 //!
-//! To use this driver, import this crate and an `embedded_hal_async` implementation,
+//! To use this driver, import this crate and an appropriate I²C implementation,
 //! then instantiate the appropriate device.
 //! In the following examples an instance of the device ADS1013 will be created.
 //!
@@ -86,7 +97,7 @@
 //!
 //! ```no_run
 //! use ads1x1x::{Ads1x1x, TargetAddr};
-//! use embedded_hal_async::i2c::I2c;
+//! use ads1x1x::eh::i2c::I2c;
 //!
 //! fn create_and_destroy<I2C: I2c>(i2c: I2C) -> I2C {
 //!     let adc = Ads1x1x::new_ads1013(i2c, TargetAddr::default());
@@ -98,7 +109,7 @@
 //!
 //! ```no_run
 //! use ads1x1x::{Ads1x1x, TargetAddr};
-//! use embedded_hal_async::i2c::I2c;
+//! use ads1x1x::eh::i2c::I2c;
 //!
 //! fn create<I2C: I2c>(i2c: I2C) {
 //!     let adc = Ads1x1x::new_ads1013(i2c, TargetAddr::Sda);
@@ -107,10 +118,26 @@
 //!
 //! ## Taking a One-Shot Measurement
 //!
+//! With the default synchronous API:
+//!
+//! ```no_run
+//! use ads1x1x::{channel, Ads1x1x, Error, TargetAddr};
+//! use embedded_hal::i2c::I2c;
+//!
+//! # #[cfg(not(feature = "async"))]
+//! fn measure<I2C: I2c>(i2c: I2C) -> Result<i16, Error<I2C::Error>> {
+//!     let mut adc = Ads1x1x::new_ads1013(i2c, TargetAddr::default());
+//!     nb::block!(adc.read(channel::DifferentialA0A1))
+//! }
+//! ```
+//!
+//! The following examples require the `async` feature:
+//!
 //! ```no_run
 //! use ads1x1x::{channel, Ads1x1x, TargetAddr};
-//! use embedded_hal_async::{delay::DelayNs, i2c::I2c};
+//! use ads1x1x::eh::{delay::DelayNs, i2c::I2c};
 //!
+//! # #[cfg(feature = "async")]
 //! async fn measure<I2C: I2c>(
 //!     i2c: I2C,
 //!     delay: &mut impl DelayNs,
@@ -127,8 +154,9 @@
 //!
 //! ```no_run
 //! use ads1x1x::{Ads1x1x, Error, ModeChangeError, TargetAddr};
-//! use embedded_hal_async::i2c::I2c;
+//! use ads1x1x::eh::i2c::I2c;
 //!
+//! # #[cfg(feature = "async")]
 //! async fn measure<I2C: I2c>(i2c: I2C) -> Result<i16, Error<I2C::Error>> {
 //!     let adc = Ads1x1x::new_ads1013(i2c, TargetAddr::default());
 //!     match adc.into_continuous().await {
@@ -145,8 +173,9 @@
 //!
 //! ```no_run
 //! use ads1x1x::{Ads1x1x, DataRate16Bit, Error, TargetAddr};
-//! use embedded_hal_async::i2c::I2c;
+//! use ads1x1x::eh::i2c::I2c;
 //!
+//! # #[cfg(feature = "async")]
 //! async fn configure<I2C: I2c>(i2c: I2C) -> Result<(), Error<I2C::Error>> {
 //!     let mut adc = Ads1x1x::new_ads1115(i2c, TargetAddr::default());
 //!     adc.set_data_rate(DataRate16Bit::Sps860).await
@@ -166,8 +195,9 @@
 //!     Ads1x1x, TargetAddr, ComparatorQueue, ComparatorPolarity,
 //!     ComparatorMode, ComparatorLatching, Error, FullScaleRange
 //! };
-//! use embedded_hal_async::i2c::I2c;
+//! use ads1x1x::eh::i2c::I2c;
 //!
+//! # #[cfg(feature = "async")]
 //! async fn configure<I2C: I2c>(i2c: I2C) -> Result<(), Error<I2C::Error>> {
 //!     let mut adc = Ads1x1x::new_ads1015(i2c, TargetAddr::default());
 //!     adc.set_comparator_queue(ComparatorQueue::Two).await?;
@@ -211,8 +241,10 @@ impl BitFlags {
     const COMP_QUE0: u16 = 0b0000_0000_0000_0001;
 }
 
+#[cfg(not(feature = "async"))]
+pub use embedded_hal as eh;
+#[cfg(feature = "async")]
 pub use embedded_hal_async as eh;
-
 
 pub mod channel;
 pub use channel::ChannelId;
