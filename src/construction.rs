@@ -16,7 +16,7 @@ macro_rules! impl_new_destroy {
                     address: address.bits(),
                     config: Config::default(),
                     fsr: FullScaleRange::default(),
-                    #[cfg(not(feature = "async"))]
+                    #[cfg(feature = "sync")]
                     a_conversion_was_started: false,
                     _conv: PhantomData,
                     _ic: PhantomData,

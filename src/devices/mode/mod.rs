@@ -1,4 +1,4 @@
 mod continuous;
 mod oneshot;
-#[cfg(not(feature = "async"))]
+#[cfg(feature = "sync")]
 mod oneshot_sync;

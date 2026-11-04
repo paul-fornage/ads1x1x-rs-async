@@ -14,9 +14,9 @@ macro_rules! mux_test {
         mod $name {
             use super::*;
 
-            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
             #[cfg_attr(feature = "async", pollster::test)]
-            #[cfg_attr(not(feature = "async"), test)]
+            #[cfg_attr(feature = "sync", test)]
             async fn can_read() {
                 let default_config = Config::default();
                 let config = Config::default().with_high(BF::OS).with_high($config_bits);
@@ -40,15 +40,15 @@ macro_rules! mux_test {
                     .read(channel::$CS, &mut NoopDelay::new())
                     .await
                     .unwrap();
-                #[cfg(not(feature = "async"))]
+                #[cfg(feature = "sync")]
                 let measurement = nb::block!(dev.read(channel::$CS)).unwrap();
                 assert_eq!(-2048, measurement);
                 destroy(dev);
             }
 
-            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
             #[cfg_attr(feature = "async", pollster::test)]
-            #[cfg_attr(not(feature = "async"), test)]
+            #[cfg_attr(feature = "sync", test)]
             async fn read_then_read_different_triggers_new_measurement() {
                 let default_config = Config::default();
                 let config = Config::default().with_high(BF::OS).with_high($config_bits);
@@ -88,7 +88,7 @@ macro_rules! mux_test {
                     .read(channel::$CS, &mut NoopDelay::new())
                     .await
                     .unwrap();
-                #[cfg(not(feature = "async"))]
+                #[cfg(feature = "sync")]
                 let first_measurement = nb::block!(dev.read(channel::$CS)).unwrap();
                 assert_eq!(2047, first_measurement);
                 #[cfg(feature = "async")]
@@ -96,13 +96,13 @@ macro_rules! mux_test {
                     .read(channel::$other_CS, &mut NoopDelay::new())
                     .await
                     .unwrap();
-                #[cfg(not(feature = "async"))]
+                #[cfg(feature = "sync")]
                 let measurement = nb::block!(dev.read(channel::$other_CS)).unwrap();
                 assert_eq!(-2048, measurement);
                 destroy(dev);
             }
 
-            #[cfg(not(feature = "async"))]
+            #[cfg(feature = "sync")]
             #[test]
             fn changing_channel_before_reading_result_starts_new_conversion() {
                 let default_config = Config::default();
@@ -138,9 +138,9 @@ macro_rules! mux_test {
                 destroy(dev);
             }
 
-            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
             #[cfg_attr(feature = "async", pollster::test)]
-            #[cfg_attr(not(feature = "async"), test)]
+            #[cfg_attr(feature = "sync", test)]
             async fn continuous_can_select_channel() {
                 let config1 = Config::default().with_low(BF::OP_MODE);
                 let config2 = config1.with_high($config_bits);

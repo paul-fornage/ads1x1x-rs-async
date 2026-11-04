@@ -14,7 +14,7 @@ macro_rules! measure_tests {
         mod $IC {
             use super::*;
 
-            #[cfg(not(feature = "async"))]
+            #[cfg(feature = "sync")]
             #[test]
             fn read_if_measurement_in_progress() {
                 let config = Config::default().with_low(BF::OS);
@@ -31,9 +31,9 @@ macro_rules! measure_tests {
                 $destroy(dev);
             }
 
-            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
             #[cfg_attr(feature = "async", pollster::test)]
-            #[cfg_attr(not(feature = "async"), test)]
+            #[cfg_attr(feature = "sync", test)]
             async fn can_measure() {
                 let default_config = Config::default();
                 let config_with_os = Config::default().with_high(BF::OS);
@@ -60,15 +60,15 @@ macro_rules! measure_tests {
                     .read(channel::DifferentialA0A1, &mut NoopDelay::new())
                     .await
                     .unwrap();
-                #[cfg(not(feature = "async"))]
+                #[cfg(feature = "sync")]
                 let measurement = nb::block!(dev.read(channel::DifferentialA0A1)).unwrap();
                 assert_eq!($expected, measurement);
                 $destroy(dev);
             }
 
-            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
             #[cfg_attr(feature = "async", pollster::test)]
-            #[cfg_attr(not(feature = "async"), test)]
+            #[cfg_attr(feature = "sync", test)]
             async fn can_measure_continuous() {
                 let config = Config::default().with_low(BF::OP_MODE);
                 let transactions = [
@@ -93,9 +93,9 @@ mod data_rate_12bit {
 
     macro_rules! test {
         ($name:ident, $variant:ident, $config:expr) => {
-            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
             #[cfg_attr(feature = "async", pollster::test)]
-            #[cfg_attr(not(feature = "async"), test)]
+            #[cfg_attr(feature = "sync", test)]
             async fn $name() {
                 let transactions = [I2cTrans::write(
                     DEV_ADDR,
@@ -171,9 +171,9 @@ mod data_rate_16bit {
 
     macro_rules! test {
         ($name:ident, $variant:ident, $config:expr) => {
-            #[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+            #[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
             #[cfg_attr(feature = "async", pollster::test)]
-            #[cfg_attr(not(feature = "async"), test)]
+            #[cfg_attr(feature = "sync", test)]
             async fn $name() {
                 let transactions = [I2cTrans::write(
                     DEV_ADDR,
@@ -252,9 +252,9 @@ mod data_rate_16bit {
     );
 }
 
-#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
 #[cfg_attr(feature = "async", pollster::test)]
-#[cfg_attr(not(feature = "async"), test)]
+#[cfg_attr(feature = "sync", test)]
 async fn can_read_measurement_in_progress() {
     let config_os = Config::default().with_low(BF::OS);
     let transactions = [I2cTrans::write_read(
@@ -268,9 +268,9 @@ async fn can_read_measurement_in_progress() {
     destroy_ads1013(dev);
 }
 
-#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
 #[cfg_attr(feature = "async", pollster::test)]
-#[cfg_attr(not(feature = "async"), test)]
+#[cfg_attr(feature = "sync", test)]
 async fn can_read_measurement_not_in_progress() {
     let config_os = Config::default().with_high(BF::OS);
     let transactions = [I2cTrans::write_read(
@@ -284,9 +284,9 @@ async fn can_read_measurement_not_in_progress() {
     destroy_ads1013(dev);
 }
 
-#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
 #[cfg_attr(feature = "async", pollster::test)]
-#[cfg_attr(not(feature = "async"), test)]
+#[cfg_attr(feature = "sync", test)]
 async fn can_convert_to_continuous() {
     let config = Config::default().with_low(BF::OP_MODE);
     let transactions = [I2cTrans::write(
@@ -298,9 +298,9 @@ async fn can_convert_to_continuous() {
     destroy_ads1013(dev);
 }
 
-#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
 #[cfg_attr(feature = "async", pollster::test)]
-#[cfg_attr(not(feature = "async"), test)]
+#[cfg_attr(feature = "sync", test)]
 async fn can_convert_to_one_shot() {
     let config_cont = Config::default().with_low(BF::OP_MODE);
     let config_os = Config::default();
