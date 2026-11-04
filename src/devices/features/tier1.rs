@@ -12,15 +12,15 @@ where
         use crate::DataRate12Bit as DR;
         let cfg = self.config.clone();
         let config = match rate {
-            DR::Sps128 => cfg.with_low(BF::DR2).with_low(BF::DR1).with_low(BF::DR0),
-            DR::Sps250 => cfg.with_low(BF::DR2).with_low(BF::DR1).with_high(BF::DR0),
-            DR::Sps490 => cfg.with_low(BF::DR2).with_high(BF::DR1).with_low(BF::DR0),
-            DR::Sps920 => cfg.with_low(BF::DR2).with_high(BF::DR1).with_high(BF::DR0),
-            DR::Sps1600 => cfg.with_high(BF::DR2).with_low(BF::DR1).with_low(BF::DR0),
-            DR::Sps2400 => cfg.with_high(BF::DR2).with_low(BF::DR1).with_high(BF::DR0),
-            DR::Sps3300 => cfg.with_high(BF::DR2).with_high(BF::DR1).with_low(BF::DR0),
+            DR::Sps128 => cfg.with_low(BF::Dr2).with_low(BF::Dr1).with_low(BF::Dr0),
+            DR::Sps250 => cfg.with_low(BF::Dr2).with_low(BF::Dr1).with_high(BF::Dr0),
+            DR::Sps490 => cfg.with_low(BF::Dr2).with_high(BF::Dr1).with_low(BF::Dr0),
+            DR::Sps920 => cfg.with_low(BF::Dr2).with_high(BF::Dr1).with_high(BF::Dr0),
+            DR::Sps1600 => cfg.with_high(BF::Dr2).with_low(BF::Dr1).with_low(BF::Dr0),
+            DR::Sps2400 => cfg.with_high(BF::Dr2).with_low(BF::Dr1).with_high(BF::Dr0),
+            DR::Sps3300 => cfg.with_high(BF::Dr2).with_high(BF::Dr1).with_low(BF::Dr0),
         };
-        self.write_register(Register::CONFIG, config.bits).await?;
+        self.write_register(Register::Config, config.bits).await?;
         self.config = config;
         Ok(())
     }
@@ -36,16 +36,16 @@ where
         use crate::DataRate16Bit as DR;
         let cfg = self.config.clone();
         let config = match rate {
-            DR::Sps8 => cfg.with_low(BF::DR2).with_low(BF::DR1).with_low(BF::DR0),
-            DR::Sps16 => cfg.with_low(BF::DR2).with_low(BF::DR1).with_high(BF::DR0),
-            DR::Sps32 => cfg.with_low(BF::DR2).with_high(BF::DR1).with_low(BF::DR0),
-            DR::Sps64 => cfg.with_low(BF::DR2).with_high(BF::DR1).with_high(BF::DR0),
-            DR::Sps128 => cfg.with_high(BF::DR2).with_low(BF::DR1).with_low(BF::DR0),
-            DR::Sps250 => cfg.with_high(BF::DR2).with_low(BF::DR1).with_high(BF::DR0),
-            DR::Sps475 => cfg.with_high(BF::DR2).with_high(BF::DR1).with_low(BF::DR0),
-            DR::Sps860 => cfg.with_high(BF::DR2).with_high(BF::DR1).with_high(BF::DR0),
+            DR::Sps8 => cfg.with_low(BF::Dr2).with_low(BF::Dr1).with_low(BF::Dr0),
+            DR::Sps16 => cfg.with_low(BF::Dr2).with_low(BF::Dr1).with_high(BF::Dr0),
+            DR::Sps32 => cfg.with_low(BF::Dr2).with_high(BF::Dr1).with_low(BF::Dr0),
+            DR::Sps64 => cfg.with_low(BF::Dr2).with_high(BF::Dr1).with_high(BF::Dr0),
+            DR::Sps128 => cfg.with_high(BF::Dr2).with_low(BF::Dr1).with_low(BF::Dr0),
+            DR::Sps250 => cfg.with_high(BF::Dr2).with_low(BF::Dr1).with_high(BF::Dr0),
+            DR::Sps475 => cfg.with_high(BF::Dr2).with_high(BF::Dr1).with_low(BF::Dr0),
+            DR::Sps860 => cfg.with_high(BF::Dr2).with_high(BF::Dr1).with_high(BF::Dr0),
         };
-        self.write_register(Register::CONFIG, config.bits).await?;
+        self.write_register(Register::Config, config.bits).await?;
         self.config = config;
         Ok(())
     }

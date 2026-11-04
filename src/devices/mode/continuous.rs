@@ -33,7 +33,7 @@ where
 
     /// Reads the most recent measurement.
     pub async fn read(&mut self) -> Result<i16, Error<E>> {
-        let value = self.read_register(Register::CONVERSION).await?;
+        let value = self.read_register(Register::Conversion).await?;
         Ok(CONV::convert_measurement(value))
     }
 
@@ -45,7 +45,7 @@ where
     #[allow(unused_variables)]
     pub async fn select_channel<CH: ChannelId<Self>>(&mut self, channel: CH) -> Result<(), Error<E>> {
         let config = self.config.with_mux_bits(CH::channel_id());
-        self.write_register(Register::CONFIG, config.bits).await?;
+        self.write_register(Register::Config, config.bits).await?;
         self.config = config;
         Ok(())
     }

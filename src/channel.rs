@@ -14,6 +14,7 @@ macro_rules! impl_channels {
     ($(#[doc = $doc:expr] $CH:ident => [$($IC:ident),+]),+ $(,)?) => {
         mod private {
             #[derive(Debug, Clone, Copy)]
+            #[cfg_attr(feature = "defmt", derive(defmt::Format))]
             /// ADC input channel selection.
             pub enum ChannelSelection {
                 $(
@@ -25,6 +26,7 @@ macro_rules! impl_channels {
 
         $(
             #[doc = $doc]
+            #[cfg_attr(feature = "defmt", derive(defmt::Format))]
             pub struct $CH;
 
             $(
@@ -61,37 +63,37 @@ impl Config {
     pub(crate) fn with_mux_bits(&self, ch: ChannelSelection) -> Self {
         match ch {
             ChannelSelection::DifferentialA0A1 => self
-                .with_low(BF::MUX2)
-                .with_low(BF::MUX1)
-                .with_low(BF::MUX0),
+                .with_low(BF::Mux2)
+                .with_low(BF::Mux1)
+                .with_low(BF::Mux0),
             ChannelSelection::DifferentialA0A3 => self
-                .with_low(BF::MUX2)
-                .with_low(BF::MUX1)
-                .with_high(BF::MUX0),
+                .with_low(BF::Mux2)
+                .with_low(BF::Mux1)
+                .with_high(BF::Mux0),
             ChannelSelection::DifferentialA1A3 => self
-                .with_low(BF::MUX2)
-                .with_high(BF::MUX1)
-                .with_low(BF::MUX0),
+                .with_low(BF::Mux2)
+                .with_high(BF::Mux1)
+                .with_low(BF::Mux0),
             ChannelSelection::DifferentialA2A3 => self
-                .with_low(BF::MUX2)
-                .with_high(BF::MUX1)
-                .with_high(BF::MUX0),
+                .with_low(BF::Mux2)
+                .with_high(BF::Mux1)
+                .with_high(BF::Mux0),
             ChannelSelection::SingleA0 => self
-                .with_high(BF::MUX2)
-                .with_low(BF::MUX1)
-                .with_low(BF::MUX0),
+                .with_high(BF::Mux2)
+                .with_low(BF::Mux1)
+                .with_low(BF::Mux0),
             ChannelSelection::SingleA1 => self
-                .with_high(BF::MUX2)
-                .with_low(BF::MUX1)
-                .with_high(BF::MUX0),
+                .with_high(BF::Mux2)
+                .with_low(BF::Mux1)
+                .with_high(BF::Mux0),
             ChannelSelection::SingleA2 => self
-                .with_high(BF::MUX2)
-                .with_high(BF::MUX1)
-                .with_low(BF::MUX0),
+                .with_high(BF::Mux2)
+                .with_high(BF::Mux1)
+                .with_low(BF::Mux0),
             ChannelSelection::SingleA3 => self
-                .with_high(BF::MUX2)
-                .with_high(BF::MUX1)
-                .with_high(BF::MUX0),
+                .with_high(BF::Mux2)
+                .with_high(BF::Mux1)
+                .with_high(BF::Mux0),
         }
     }
 }

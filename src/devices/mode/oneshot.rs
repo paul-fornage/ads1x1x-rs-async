@@ -51,11 +51,11 @@ where
     ) -> Result<i16, Error<E>> {
         self.wait_until_ready(delay).await?;
         let config = self.config.with_mux_bits(CH::channel_id());
-        self.write_register(Register::CONFIG, config.with_high(BitFlags::OS).bits)
+        self.write_register(Register::Config, config.with_high(BitFlags::Os).bits)
             .await?;
         self.config = config;
         self.wait_until_ready(delay).await?;
-        let value = self.read_register(Register::CONVERSION).await?;
+        let value = self.read_register(Register::Conversion).await?;
         Ok(CONV::convert_measurement(value))
     }
 

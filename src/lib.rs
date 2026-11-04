@@ -85,6 +85,9 @@
 //! with the device become async, and one-shot reads take an async delay and wait
 //! for the conversion to complete. Constructors and destructors stay synchronous.
 //!
+//! Enable `defmt` with either API to format driver types using `defmt::Format`.
+//! Register configuration is formatted as named bitfields rather than a raw integer.
+//!
 //! # Examples
 //!
 //! To use this driver, import this crate and an appropriate I²C implementation,
@@ -221,34 +224,6 @@ compile_error!("Features `sync` and `async` are mutually exclusive; disable defa
 #[cfg(not(any(feature = "sync", feature = "async")))]
 compile_error!("Enable exactly one of the `sync` or `async` features.");
 
-struct Register;
-impl Register {
-    const CONVERSION: u8 = 0x00;
-    const CONFIG: u8 = 0x01;
-    const LOW_TH: u8 = 0x02;
-    const HIGH_TH: u8 = 0x03;
-}
-
-struct BitFlags;
-impl BitFlags {
-    const OS: u16 = 0b1000_0000_0000_0000;
-    const MUX2: u16 = 0b0100_0000_0000_0000;
-    const MUX1: u16 = 0b0010_0000_0000_0000;
-    const MUX0: u16 = 0b0001_0000_0000_0000;
-    const PGA2: u16 = 0b0000_1000_0000_0000;
-    const PGA1: u16 = 0b0000_0100_0000_0000;
-    const PGA0: u16 = 0b0000_0010_0000_0000;
-    const OP_MODE: u16 = 0b0000_0001_0000_0000;
-    const DR2: u16 = 0b0000_0000_1000_0000;
-    const DR1: u16 = 0b0000_0000_0100_0000;
-    const DR0: u16 = 0b0000_0000_0010_0000;
-    const COMP_MODE: u16 = 0b0000_0000_0001_0000;
-    const COMP_POL: u16 = 0b0000_0000_0000_1000;
-    const COMP_LAT: u16 = 0b0000_0000_0000_0100;
-    const COMP_QUE1: u16 = 0b0000_0000_0000_0010;
-    const COMP_QUE0: u16 = 0b0000_0000_0000_0001;
-}
-
 #[cfg(feature = "sync")]
 pub use embedded_hal as eh;
 #[cfg(feature = "async")]
@@ -262,8 +237,9 @@ pub use crate::conversion::{ConvertMeasurement, ConvertThreshold};
 mod devices;
 #[doc(hidden)]
 pub mod ic;
+mod register;
 mod types;
-use crate::types::Config;
+use crate::register::{BitFlags, Config, Register};
 pub use crate::types::{
     mode, Ads1x1x, ComparatorLatching, ComparatorMode, ComparatorPolarity, ComparatorQueue,
     DataRate12Bit, DataRate16Bit, Error, FullScaleRange, ModeChangeError, TargetAddr,
