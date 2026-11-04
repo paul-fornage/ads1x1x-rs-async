@@ -76,10 +76,12 @@
 //!
 //! # Features
 //!
-//! The default API uses synchronous I²C. One-shot reads return
+//! The default `sync` feature uses synchronous I²C. One-shot reads return
 //! `nb::Error::WouldBlock` until a conversion is ready.
 //!
-//! Enable the `async` feature to use asynchronous I²C. Methods that communicate
+//! Disable default features and enable `async` to use asynchronous I²C:
+//! `ads1x1x = { version = "0.3", default-features = false, features = ["async"] }`.
+//! Exactly one of `sync` and `async` must be enabled. Methods that communicate
 //! with the device become async, and one-shot reads take an async delay and wait
 //! for the conversion to complete. Constructors and destructors stay synchronous.
 //!
@@ -124,7 +126,7 @@
 //! use ads1x1x::{channel, Ads1x1x, Error, TargetAddr};
 //! use embedded_hal::i2c::I2c;
 //!
-//! # #[cfg(not(feature = "async"))]
+//! # #[cfg(feature = "sync")]
 //! fn measure<I2C: I2c>(i2c: I2C) -> Result<i16, Error<I2C::Error>> {
 //!     let mut adc = Ads1x1x::new_ads1013(i2c, TargetAddr::default());
 //!     nb::block!(adc.read(channel::DifferentialA0A1))
@@ -213,6 +215,12 @@
 #![deny(missing_docs)]
 #![no_std]
 
+#[cfg(all(feature = "sync", feature = "async"))]
+compile_error!("Features `sync` and `async` are mutually exclusive; disable default features to use `async`.");
+
+#[cfg(not(any(feature = "sync", feature = "async")))]
+compile_error!("Enable exactly one of the `sync` or `async` features.");
+
 struct Register;
 impl Register {
     const CONVERSION: u8 = 0x00;
@@ -241,7 +249,7 @@ impl BitFlags {
     const COMP_QUE0: u16 = 0b0000_0000_0000_0001;
 }
 
-#[cfg(not(feature = "async"))]
+#[cfg(feature = "sync")]
 pub use embedded_hal as eh;
 #[cfg(feature = "async")]
 pub use embedded_hal_async as eh;

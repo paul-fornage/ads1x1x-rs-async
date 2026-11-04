@@ -7,7 +7,7 @@ use crate::{eh::delay::DelayNs, BitFlags, ChannelId, Register};
 
 use crate::{conversion, devices::OperatingMode, mode, Ads1x1x, Error, ModeChangeError};
 
-#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
 impl<I2C, IC, CONV, E> Ads1x1x<I2C, IC, CONV, mode::OneShot>
 where
     I2C: crate::eh::i2c::I2c<Error = E>,
@@ -25,7 +25,7 @@ where
             address: self.address,
             config: self.config,
             fsr: self.fsr,
-            #[cfg(not(feature = "async"))]
+            #[cfg(feature = "sync")]
             a_conversion_was_started: true,
             _conv: PhantomData,
             _ic: PhantomData,

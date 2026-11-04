@@ -5,7 +5,7 @@ use crate::{
     ComparatorPolarity, ComparatorQueue, Error, FullScaleRange, Register,
 };
 
-#[cfg_attr(not(feature = "async"), maybe_async::must_be_sync)]
+#[cfg_attr(feature = "sync", maybe_async::must_be_sync)]
 impl<I2C, IC, CONV, MODE, E> Ads1x1x<I2C, IC, CONV, MODE>
 where
     I2C: crate::eh::i2c::I2c<Error = E>,

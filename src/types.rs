@@ -227,7 +227,7 @@ pub struct Ads1x1x<I2C, IC, CONV, MODE> {
     pub(crate) address: u8,
     pub(crate) config: Config,
     pub(crate) fsr: FullScaleRange,
-    #[cfg(not(feature = "async"))]
+    #[cfg(feature = "sync")]
     pub(crate) a_conversion_was_started: bool,
     pub(crate) _conv: PhantomData<CONV>,
     pub(crate) _ic: PhantomData<IC>,
