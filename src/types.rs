@@ -2,8 +2,11 @@
 
 use core::marker::PhantomData;
 
+use crate::Config;
+
 /// Errors in this crate
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error<E> {
     /// I²C bus error
     I2C(E),
@@ -14,6 +17,7 @@ pub enum Error<E> {
 /// Error type for mode changes.
 ///
 /// This allows to retrieve the unchanged device in case of an error.
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ModeChangeError<E, DEV> {
     /// I²C bus error while changing mode.
     ///
@@ -25,14 +29,17 @@ pub enum ModeChangeError<E, DEV> {
 /// Mode marker types
 pub mod mode {
     /// One-shot operating mode / power-down state (default)
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct OneShot(());
 
     /// Continuous conversion mode
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct Continuous(());
 }
 
 /// Data rate for ADS101x.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DataRate12Bit {
     /// 128 SPS
     Sps128,
@@ -53,6 +60,7 @@ pub enum DataRate12Bit {
 
 /// Data rate for ADS111x.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DataRate16Bit {
     /// 8 SPS
     Sps8,
@@ -75,6 +83,7 @@ pub enum DataRate16Bit {
 
 /// Comparator mode (only for ADS1x14, ADS1x15).
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ComparatorMode {
     #[default]
     /// Traditional comparator (default)
@@ -94,6 +103,7 @@ pub enum ComparatorMode {
 
 /// Comparator polarity (only for ADS1x14, ADS1x15).
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ComparatorPolarity {
     #[default]
     /// Active low (default)
@@ -108,6 +118,7 @@ pub enum ComparatorPolarity {
 /// after conversions are within the margin of the upper and lower
 /// threshold values.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ComparatorLatching {
     #[default]
     /// Nonlatching (default)
@@ -128,6 +139,7 @@ pub enum ComparatorLatching {
 /// The default state of the comparator is deactivated. It can be activated by setting
 /// the comparator queue.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ComparatorQueue {
     /// Activate comparator and assert after one conversion exceeding thresholds
     One,
@@ -144,6 +156,7 @@ pub enum ComparatorQueue {
 /// The FSR is fixed at ±2.048 V in the ADS1x13.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
 #[allow(non_camel_case_types)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum FullScaleRange {
     /// ±6.144V
     Within6_144V,
@@ -164,6 +177,7 @@ pub enum FullScaleRange {
 ///
 /// See [Table 4 in the datasheet](https://www.ti.com/lit/ds/symlink/ads1115.pdf#%5B%7B%22num%22%3A716%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C0%2C602.2%2C0%5D).
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum TargetAddr {
     /// Address when the ADDR pin is connected to GND. (default)
     #[default]
@@ -191,37 +205,9 @@ impl TargetAddr {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Config {
-    pub(crate) bits: u16,
-}
-
-impl Config {
-    pub(crate) fn is_high(&self, mask: u16) -> bool {
-        (self.bits & mask) != 0
-    }
-
-    pub(crate) fn with_high(&self, mask: u16) -> Self {
-        Config {
-            bits: self.bits | mask,
-        }
-    }
-
-    pub(crate) fn with_low(&self, mask: u16) -> Self {
-        Config {
-            bits: self.bits & !mask,
-        }
-    }
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Config { bits: 0x8583 }
-    }
-}
-
 /// ADS1x1x ADC driver
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Ads1x1x<I2C, IC, CONV, MODE> {
     pub(crate) i2c: I2C,
     pub(crate) address: u8,

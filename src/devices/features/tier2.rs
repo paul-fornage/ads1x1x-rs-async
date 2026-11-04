@@ -19,29 +19,29 @@ where
         use crate::FullScaleRange as FSR;
         let cfg = self.config.clone();
         let config = match range {
-            FSR::Within6_144V => cfg.with_low(BF::PGA2).with_low(BF::PGA1).with_low(BF::PGA0),
+            FSR::Within6_144V => cfg.with_low(BF::Pga2).with_low(BF::Pga1).with_low(BF::Pga0),
             FSR::Within4_096V => cfg
-                .with_low(BF::PGA2)
-                .with_low(BF::PGA1)
-                .with_high(BF::PGA0),
+                .with_low(BF::Pga2)
+                .with_low(BF::Pga1)
+                .with_high(BF::Pga0),
             FSR::Within2_048V => cfg
-                .with_low(BF::PGA2)
-                .with_high(BF::PGA1)
-                .with_low(BF::PGA0),
+                .with_low(BF::Pga2)
+                .with_high(BF::Pga1)
+                .with_low(BF::Pga0),
             FSR::Within1_024V => cfg
-                .with_low(BF::PGA2)
-                .with_high(BF::PGA1)
-                .with_high(BF::PGA0),
+                .with_low(BF::Pga2)
+                .with_high(BF::Pga1)
+                .with_high(BF::Pga0),
             FSR::Within0_512V => cfg
-                .with_high(BF::PGA2)
-                .with_low(BF::PGA1)
-                .with_low(BF::PGA0),
+                .with_high(BF::Pga2)
+                .with_low(BF::Pga1)
+                .with_low(BF::Pga0),
             FSR::Within0_256V => cfg
-                .with_high(BF::PGA2)
-                .with_low(BF::PGA1)
-                .with_high(BF::PGA0),
+                .with_high(BF::Pga2)
+                .with_low(BF::Pga1)
+                .with_high(BF::Pga0),
         };
-        self.write_register(Register::CONFIG, config.bits).await?;
+        self.write_register(Register::Config, config.bits).await?;
         self.config = config;
         Ok(())
     }
@@ -55,7 +55,7 @@ where
     /// and within `[32767..-32768]` for 16-bit devices (`ADS111x`).
     pub async fn set_low_threshold_raw(&mut self, value: i16) -> Result<(), Error<E>> {
         let register_value = CONV::convert_threshold(value)?;
-        self.write_register(Register::LOW_TH, register_value).await
+        self.write_register(Register::LowThreshold, register_value).await
     }
 
     /// Sets the raw comparator upper threshold.
@@ -67,16 +67,16 @@ where
     /// and within `[32767..-32768]` for 16-bit devices (`ADS111x`).
     pub async fn set_high_threshold_raw(&mut self, value: i16) -> Result<(), Error<E>> {
         let register_value = CONV::convert_threshold(value)?;
-        self.write_register(Register::HIGH_TH, register_value).await
+        self.write_register(Register::HighThreshold, register_value).await
     }
 
     /// Sets the comparator mode.
     pub async fn set_comparator_mode(&mut self, mode: ComparatorMode) -> Result<(), Error<E>> {
         let config = match mode {
-            ComparatorMode::Traditional => self.config.with_low(BF::COMP_MODE),
-            ComparatorMode::Window => self.config.with_high(BF::COMP_MODE),
+            ComparatorMode::Traditional => self.config.with_low(BF::CompMode),
+            ComparatorMode::Window => self.config.with_high(BF::CompMode),
         };
-        self.write_register(Register::CONFIG, config.bits).await?;
+        self.write_register(Register::Config, config.bits).await?;
         self.config = config;
         Ok(())
     }
@@ -87,10 +87,10 @@ where
         polarity: ComparatorPolarity,
     ) -> Result<(), Error<E>> {
         let config = match polarity {
-            ComparatorPolarity::ActiveLow => self.config.with_low(BF::COMP_POL),
-            ComparatorPolarity::ActiveHigh => self.config.with_high(BF::COMP_POL),
+            ComparatorPolarity::ActiveLow => self.config.with_low(BF::CompPol),
+            ComparatorPolarity::ActiveHigh => self.config.with_high(BF::CompPol),
         };
-        self.write_register(Register::CONFIG, config.bits).await?;
+        self.write_register(Register::Config, config.bits).await?;
         self.config = config;
         Ok(())
     }
@@ -101,10 +101,10 @@ where
         latching: ComparatorLatching,
     ) -> Result<(), Error<E>> {
         let config = match latching {
-            ComparatorLatching::Nonlatching => self.config.with_low(BF::COMP_LAT),
-            ComparatorLatching::Latching => self.config.with_high(BF::COMP_LAT),
+            ComparatorLatching::Nonlatching => self.config.with_low(BF::CompLat),
+            ComparatorLatching::Latching => self.config.with_high(BF::CompLat),
         };
-        self.write_register(Register::CONFIG, config.bits).await?;
+        self.write_register(Register::Config, config.bits).await?;
         self.config = config;
         Ok(())
     }
@@ -114,11 +114,11 @@ where
     /// The comparator can be disabled with [`disable_comparator`](Self::disable_comparator).
     pub async fn set_comparator_queue(&mut self, queue: ComparatorQueue) -> Result<(), Error<E>> {
         let config = match queue {
-            ComparatorQueue::One => self.config.with_low(BF::COMP_QUE1).with_low(BF::COMP_QUE0),
-            ComparatorQueue::Two => self.config.with_low(BF::COMP_QUE1).with_high(BF::COMP_QUE0),
-            ComparatorQueue::Four => self.config.with_high(BF::COMP_QUE1).with_low(BF::COMP_QUE0),
+            ComparatorQueue::One => self.config.with_low(BF::CompQue1).with_low(BF::CompQue0),
+            ComparatorQueue::Two => self.config.with_low(BF::CompQue1).with_high(BF::CompQue0),
+            ComparatorQueue::Four => self.config.with_high(BF::CompQue1).with_low(BF::CompQue0),
         };
-        self.write_register(Register::CONFIG, config.bits).await?;
+        self.write_register(Register::Config, config.bits).await?;
         self.config = config;
         Ok(())
     }
@@ -132,9 +132,9 @@ where
     pub async fn disable_comparator(&mut self) -> Result<(), Error<E>> {
         let config = self
             .config
-            .with_high(BF::COMP_QUE1)
-            .with_high(BF::COMP_QUE0);
-        self.write_register(Register::CONFIG, config.bits).await?;
+            .with_high(BF::CompQue1)
+            .with_high(BF::CompQue0);
+        self.write_register(Register::Config, config.bits).await?;
         self.config = config;
         Ok(())
     }
@@ -149,12 +149,12 @@ where
         if self.config
             != self
                 .config
-                .with_high(BF::COMP_QUE1)
-                .with_high(BF::COMP_QUE0)
+                .with_high(BF::CompQue1)
+                .with_high(BF::CompQue0)
         {
             self.set_comparator_queue(ComparatorQueue::default()).await?;
         }
-        self.write_register(Register::HIGH_TH, 0x8000).await?;
-        self.write_register(Register::LOW_TH, 0).await
+        self.write_register(Register::HighThreshold, 0x8000).await?;
+        self.write_register(Register::LowThreshold, 0).await
     }
 }

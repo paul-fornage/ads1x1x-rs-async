@@ -2,13 +2,16 @@
 use crate::private;
 
 #[non_exhaustive]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Resolution12Bit;
 #[non_exhaustive]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Resolution16Bit;
 
 macro_rules! ic_marker {
     ($name:ident) => {
         /// IC marker
+        #[cfg_attr(feature = "defmt", derive(defmt::Format))]
         pub struct $name(());
     };
 }

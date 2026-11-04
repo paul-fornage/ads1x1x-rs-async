@@ -21,12 +21,12 @@ where
         let config = self.config.with_mux_bits(CH::channel_id());
         if self.a_conversion_was_started && self.config == config {
             let value = self
-                .read_register(Register::CONVERSION)
+                .read_register(Register::Conversion)
                 .map_err(nb::Error::Other)?;
             self.a_conversion_was_started = false;
             return Ok(CONV::convert_measurement(value));
         }
-        self.write_register(Register::CONFIG, config.with_high(BitFlags::OS).bits)
+        self.write_register(Register::Config, config.with_high(BitFlags::Os).bits)
             .map_err(nb::Error::Other)?;
         self.config = config;
         self.a_conversion_was_started = true;
